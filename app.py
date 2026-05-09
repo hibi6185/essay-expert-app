@@ -15,25 +15,23 @@ except:
 
 # ---------------------------------------------------------
 # [구글 스프레드시트 주소 설정]
-# 나중에 시트 주소가 나오면 아래 "여기에_시트_주소를_넣으세요" 부분을 지우고 주소를 넣으세요!
+# 작가님이 보내주신 링크를 앱이 읽을 수 있는 형식으로 변환하여 연결했습니다.
 # ---------------------------------------------------------
-SHEET_URL = "여기에_시트_주소를_넣으세요"
+SHEET_URL = "https://docs.google.com/spreadsheets/d/11oFUQqJnIE0AgWC4tX57UwNvfLXAvFvtWmM2vr7pXEw/export?format=csv&gid=0"
 
-@st.cache_data
+@st.cache_data(ttl=600) # 10분마다 데이터를 새로고침하여 시트 수정을 반영합니다
 def load_data(url):
     try:
-        # 구글 시트를 CSV 형태로 읽어오는 방식입니다
-        csv_url = url.replace('/edit?usp=sharing', '/export?format=csv')
-        csv_url = csv_url.replace('/edit#gid=', '/export?format=csv&gid=')
-        df = pd.read_csv(csv_url)
+        df = pd.read_csv(url)
         return df
-    except:
+    except Exception as e:
+        st.error(f"시트 데이터를 읽어오는 데 실패했습니다: {e}")
         return None
 
 # 데이터 불러오기 실행
 df = load_data(SHEET_URL)
 
-# 3. 메인 탭 생성 (명칭 변경: 논술 강의실)
+# 3. 메인 탭 생성
 tab1, tab2 = st.tabs(["📺 논술 강의실", "✍️ AI 논술 첨삭"])
 
 # --- [Tab 1: 논술 강의실] ---
@@ -41,29 +39,30 @@ with tab1:
     st.title("📺 논술 강의실")
     
     if df is not None:
-        # 시트 데이터가 연결되었을 경우
-        col1, col2 = st.columns([1, 3])
+        col1, col2 = st.columns([1, 3]) # 메뉴 영역과 영상 영역 분할
         
         with col1:
+            # 시트의 '과정' 열에서 중복을 제거한 목록을 가져옵니다 (기본편/심화편 등)
             course_list = df['과정'].unique()
-            course = st.radio("과정 선택", course_list)
+            course = st.radio("과정을 선택하세요", course_list)
             
             # 선택한 과정에 맞는 강의들만 필터링
             filtered_df = df[df['과정'] == course]
-            selected_title = st.selectbox("강의 선택", filtered_df['강의제목'])
+            selected_title = st.selectbox("강의를 선택하세요", filtered_df['강의제목'])
             
-            # 선택된 강의의 링크 가져오기
+            # 선택된 강의의 유튜브 링크 가져오기
             video_url = filtered_df[filtered_df['강의제목'] == selected_title]['유튜브링크'].values[0]
         
         with col2:
             st.subheader(f"🎥 {selected_title}")
-            st.video(video_url)
-            st.info("강의를 다 들었다면 상단의 'AI 논술 첨삭' 탭을 클릭하세요!")
+            if pd.isna(video_url) or "http" not in str(video_url):
+                st.warning("이 강의는 아직 영상 링크가 등록되지 않았습니다.")
+            else:
+                st.video(video_url)
+            
+            st.info("💡 강의를 시청한 후 'AI 논술 첨삭' 탭에서 글을 제출해 보세요!")
     else:
-        # 아직 시트 주소가 연결되지 않았을 때의 안내 문구
-        st.warning("아직 강의 데이터(구글 시트)가 연결되지 않았습니다. 시트 주소를 app.py에 입력해주세요.")
-        st.info("임시로 예시 영상을 보여드립니다.")
-        st.video("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+        st.warning("강의 데이터를 불러올 수 없습니다. 구글 시트의 공유 설정이 '링크가 있는 모든 사용자 - 뷰어'로 되어 있는지 확인해 주세요.")
 
 # --- [Tab 2: AI 논술 첨삭] ---
 with tab2:
@@ -96,7 +95,7 @@ with tab2:
                     말투는 반드시 아이와 엄마가 함께 읽었을 때 행복해지는 다정한 말투이면서도 존댓말을 사용해줘.
                     """
                     
-                    model = genai.GenerativeModel('gemini-3.1-flash-lite')
+                    model = genai.GenerativeModel('gemini-1.5-flash') # 최신 모델 사용
                     response = model.generate_content([instruction, img])
                     
                     st.success("첨삭이 완료되었습니다!")
