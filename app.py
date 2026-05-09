@@ -1,6 +1,9 @@
 import streamlit as st
 import google.generativeai as genai
 
+# 이 줄을 추가하면 브라우저 탭 이름이 바뀝니다!
+st.set_page_config(page_title="올인원논술")
+
 # 1. Secrets에서 API 키 가져오기
 try:
     api_key = st.secrets["api_key"]
@@ -8,7 +11,7 @@ try:
 except:
     st.error("Secrets에 'api_key'가 설정되지 않았습니다.")
 
-st.title("✍️ 다정한 논술 선생님")
+st.title("✍️ 올인원논술")
 st.write("아이의 글을 사진으로 찍어 올려주세요. 정성껏 첨삭해 드립니다.")
 
 # 2. 이미지 업로드 기능
