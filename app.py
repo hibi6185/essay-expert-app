@@ -1,11 +1,12 @@
 import streamlit as st
 import google.generativeai as genai
 import PIL.Image
+import pandas as pd # 구글 시트 데이터를 읽기 위해 필요한 도구입니다
 
-# 1. 페이지 설정 (넓은 화면 모드)
+# 1. 페이지 설정
 st.set_page_config(page_title="올인원논술", layout="wide")
 
-# 2. API 키 설정 (Secrets 활용)
+# 2. API 키 설정
 try:
     api_key = st.secrets["api_key"]
     genai.configure(api_key=api_key)
@@ -13,21 +14,24 @@ except:
     st.error("Secrets에 'api_key'가 설정되지 않았습니다.")
 
 # ---------------------------------------------------------
-# [강의 데이터 관리함] 
-# 나중에 여기에 104개의 제목과 유튜브 링크를 채워 넣으시면 됩니다!
+# [구글 스프레드시트 주소 설정]
+# 나중에 시트 주소가 나오면 아래 "여기에_시트_주소를_넣으세요" 부분을 지우고 주소를 넣으세요!
 # ---------------------------------------------------------
-LECTURES = {
-    "기본편 (52강)": {
-        "1강: 논술의 시작": "https://www.youtube.com/watch?v=비공개링크1",
-        "2강: 문장 만들기": "https://www.youtube.com/watch?v=비공개링크2",
-        # ... 여기에 52번까지 추가 가능
-    },
-    "심화편 (52강)": {
-        "1강: 고득점 전략": "https://www.youtube.com/watch?v=비공개링크3",
-        "2강: 논리적 추론": "https://www.youtube.com/watch?v=비공개링크4",
-        # ... 여기에 52번까지 추가 가능
-    }
-}
+SHEET_URL = "여기에_시트_주소를_넣으세요"
+
+@st.cache_data # 데이터를 매번 새로 읽어오지 않고 속도를 높이기 위한 설정입니다
+def load_data(url):
+    try:
+        # 구글 시트를 CSV 형태로 읽어오는 방식입니다
+        csv_url = url.replace('/edit?usp=sharing', '/export?format=csv')
+        csv_url = csv_url.replace('/edit#gid=', '/export?format=csv&gid=')
+        df = pd.read_csv(csv_url)
+        return df
+    except:
+        return None
+
+# 데이터 불러오기 실행
+df = load_data(SHEET_URL)
 
 # 3. 메인 탭 생성
 tab1, tab2 = st.tabs(["📺 온택트 강의실", "✍️ AI 논술 첨삭"])
@@ -35,20 +39,31 @@ tab1, tab2 = st.tabs(["📺 온택트 강의실", "✍️ AI 논술 첨삭"])
 # --- [Tab 1: 온택트 강의실] ---
 with tab1:
     st.title("📺 온택트 강의실")
-    st.write("강의를 시청한 후, 첨삭 탭으로 이동해서 글을 제출하세요.")
     
-    col1, col2 = st.columns([1, 3]) # 왼쪽은 선택 메뉴, 오른쪽은 영상
-    
-    with col1:
-        course = st.radio("과정 선택", list(LECTURES.keys()))
-        lecture_titles = list(LECTURES[course].keys())
-        selected_title = st.selectbox("강의 선택", lecture_titles)
-    
-    with col2:
-        st.subheader(f"🎥 {selected_title}")
-        video_url = LECTURES[course][selected_title]
-        st.video(video_url)
-        st.info("강의를 다 들었다면 상단의 'AI 논술 첨삭' 탭을 클릭하세요!")
+    if df is not None:
+        # 시트 데이터가 있을 경우
+        col1, col2 = st.columns([1, 3])
+        
+        with col1:
+            course_list = df['과정'].unique()
+            course = st.radio("과정 선택", course_list)
+            
+            # 선택한 과정에 맞는 강의들만 필터링
+            filtered_df = df[df['과정'] == course]
+            selected_title = st.selectbox("강의 선택", filtered_df['강의제목'])
+            
+            # 선택된 강의의 링크 가져오기
+            video_url = filtered_df[filtered_df['강의제목'] == selected_title]['유튜브링크'].values[0]
+        
+        with col2:
+            st.subheader(f"🎥 {selected_title}")
+            st.video(video_url)
+            st.info("강의를 다 들었다면 상단의 'AI 논술 첨삭' 탭을 클릭하세요!")
+    else:
+        # 아직 시트 주소가 연결되지 않았을 때의 안내 문구
+        st.warning("아직 강의 데이터(구글 시트)가 연결되지 않았습니다. 시트 주소를 app.py에 입력해주세요.")
+        st.info("임시로 예시 강의를 보여드릴까요?")
+        st.video("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
 
 # --- [Tab 2: AI 논술 첨삭] ---
 with tab2:
@@ -65,9 +80,11 @@ with tab2:
                 try:
                     img = PIL.Image.open(uploaded_file)
                     
-                    # 작가님의 6단계 지침을 반영한 프롬프트
+                    # 작가님의 최신 첨삭 지침
                     instruction = """
-                    너는 초중등 논술 전문가이자 아이들의 창의적인 아이디어를 확대해주는 논술 선생님이야. 모두가 똑같은 정답이나 모범답안만을 요구하지 않고, 학생의 번뜩이는 아이디어와 창의성 및 어조를 최대한 살려주면서 창의적이고 가독성 좋은 글을 쓸 수 있게 가이드해주려는 교육철학을 갖고 있어.
+                    너는 초중등 논술 전문가이자 아이들의 창의적인 아이디어를 확대해주는 논술 선생님이야. 
+                    모두가 똑같은 정답이나 모범답안만을 요구하지 않고, 학생의 번뜩이는 아이디어와 창의성 및 어조를 최대한 살려주면서 
+                    창의적이고 가독성 좋은 글을 쓸 수 있게 가이드해주려는 교육철학을 갖고 있어.
                     사진 속 아이의 글을 읽고 아래의 가이드라인에 맞춰 답변해줘:
 
                     1. [나의 글]: 사진 속 글자를 그대로 텍스트로 옮겨줘.
