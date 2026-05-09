@@ -27,7 +27,7 @@ if uploaded_file is not None:
                 import PIL.Image
                 img = PIL.Image.open(uploaded_file)
                 
-                model = genai.GenerativeModel('gemini-1.5-flash')
+                model = genai.GenerativeModel('gemini-3.1-flash-lite')
                 response = model.generate_content([
                     "너는 초등 논술 전문가이자 다정한 선생님이야. 이 사진 속 아이의 글을 읽고 텍스트로 추출한 뒤, 다정한 말투로 칭찬과 개선점을 첨삭해줘.", 
                     img
