@@ -2,8 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 from google.oauth2 import service_account
 
-# Streamlit Secrets에서 정보를 가져와 인증 정보(Credentials)를 만듭니다.
-# 작가님이 Secrets에 넣으신 정보를 딕셔너리 형태로 변환합니다.
+# 1. 인증 정보 구성
 info = {
     "type": st.secrets["type"],
     "project_id": st.secrets["project_id"],
@@ -18,10 +17,14 @@ info = {
     "universe_domain": st.secrets["universe_domain"]
 }
 
-# 서비스 계정 인증 정보를 생성합니다.
+# 2. 인증 객체 생성
 credentials = service_account.Credentials.from_service_account_info(info)
 
-# Vision API와 Gemini 설정에 이 인증 정보를 사용합니다.
-# (이 부분은 작가님의 기존 코드 흐름에 맞춰 genai를 설정하는 부분입니다.)
-# API 키가 필요하다면 Secrets에 따로 api_key를 추가하거나, 
-# 위 credentials를 활용하도록 코드를 다듬어야 합니다.
+# 3. Gemini 설정 (여기서 모델명은 아까 확인한 최신 모델로 적어줍니다)
+# API 키가 따로 필요하다면 Secrets에 api_key = "..."를 추가하고 아래 주석을 해제하세요.
+# genai.configure(api_key=st.secrets.get("api_key", "YOUR_API_KEY_IF_NEEDED"))
+
+st.title("✍️ 다정한 논술 선생님")
+st.write("아이의 글을 사진으로 찍어 올려주세요. 정성껏 첨삭해 드립니다.")
+
+# 이후 작가님의 기존 OCR 및 첨삭 로직을 이어서 작성하시면 됩니다.
