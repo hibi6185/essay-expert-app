@@ -3,23 +3,25 @@ import google.generativeai as genai
 import PIL.Image
 import pandas as pd
 
-# 1. 페이지 설정 (넓은 화면 모드)
+# 1. 페이지 설정
 st.set_page_config(page_title="올인원논술", layout="wide")
 
-# 2. API 키 설정 (Secrets 활용)
+# 2. API 키 설정
 try:
-    api_key = st.secrets["api_key"]
-    genai.configure(api_key=api_key)
-except:
-    st.error("Secrets에 'api_key'가 설정되지 않았습니다.")
+    if "api_key" in st.secrets:
+        api_key = st.secrets["api_key"]
+        genai.configure(api_key=api_key)
+    else:
+        st.error("Streamlit Secrets에 'api_key'가 설정되어 있지 않습니다.")
+except Exception as e:
+    st.error(f"API 키 설정 중 오류가 발생했습니다: {e}")
 
 # ---------------------------------------------------------
 # [구글 스프레드시트 주소 설정]
-# 작가님이 보내주신 링크를 앱이 읽을 수 있는 형식으로 변환하여 연결했습니다.
 # ---------------------------------------------------------
 SHEET_URL = "https://docs.google.com/spreadsheets/d/11oFUQqJnIE0AgWC4tX57UwNvfLXAvFvtWmM2vr7pXEw/export?format=csv&gid=0"
 
-@st.cache_data(ttl=600) # 10분마다 데이터를 새로고침하여 시트 수정을 반영합니다
+@st.cache_data(ttl=600) 
 def load_data(url):
     try:
         df = pd.read_csv(url)
@@ -28,7 +30,6 @@ def load_data(url):
         st.error(f"시트 데이터를 읽어오는 데 실패했습니다: {e}")
         return None
 
-# 데이터 불러오기 실행
 df = load_data(SHEET_URL)
 
 # 3. 메인 탭 생성
@@ -39,18 +40,15 @@ with tab1:
     st.title("📺 논술 강의실")
     
     if df is not None:
-        col1, col2 = st.columns([1, 3]) # 메뉴 영역과 영상 영역 분할
+        col1, col2 = st.columns([1, 3])
         
         with col1:
-            # 시트의 '과정' 열에서 중복을 제거한 목록을 가져옵니다 (기본편/심화편 등)
             course_list = df['과정'].unique()
             course = st.radio("과정을 선택하세요", course_list)
             
-            # 선택한 과정에 맞는 강의들만 필터링
             filtered_df = df[df['과정'] == course]
             selected_title = st.selectbox("강의를 선택하세요", filtered_df['강의제목'])
             
-            # 선택된 강의의 유튜브 링크 가져오기
             video_url = filtered_df[filtered_df['강의제목'] == selected_title]['유튜브링크'].values[0]
         
         with col2:
@@ -62,7 +60,7 @@ with tab1:
             
             st.info("💡 강의를 시청한 후 'AI 논술 첨삭' 탭에서 글을 제출해 보세요!")
     else:
-        st.warning("강의 데이터를 불러올 수 없습니다. 구글 시트의 공유 설정이 '링크가 있는 모든 사용자 - 뷰어'로 되어 있는지 확인해 주세요.")
+        st.warning("강의 데이터를 불러올 수 없습니다.")
 
 # --- [Tab 2: AI 논술 첨삭] ---
 with tab2:
@@ -79,7 +77,7 @@ with tab2:
                 try:
                     img = PIL.Image.open(uploaded_file)
                     
-                    # 작가님의 최신 첨삭 지침 (창의성 및 제목 추천 포함)
+                    # 작가님의 최신 첨삭 지침
                     instruction = """
                     너는 초중등 논술 전문가이자 아이들의 창의적인 아이디어를 확대해주는 논술 선생님이야. 
                     모두가 똑같은 정답이나 모범답안만을 요구하지 않고, 학생의 번뜩이는 아이디어와 창의성 및 어조를 최대한 살려주면서 
@@ -95,7 +93,8 @@ with tab2:
                     말투는 반드시 아이와 엄마가 함께 읽었을 때 행복해지는 다정한 말투이면서도 존댓말을 사용해줘.
                     """
                     
-                    model = genai.GenerativeModel('gemini-1.5-flash') # 최신 모델 사용
+                    # 작가님이 알려주신 최신 모델명으로 고쳤습니다!
+                    model = genai.GenerativeModel('gemini-3.1-flash-lite') 
                     response = model.generate_content([instruction, img])
                     
                     st.success("첨삭이 완료되었습니다!")
