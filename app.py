@@ -1,12 +1,12 @@
 import streamlit as st
 import google.generativeai as genai
 import PIL.Image
-import pandas as pd # 구글 시트 데이터를 읽기 위해 필요한 도구입니다
+import pandas as pd
 
-# 1. 페이지 설정
+# 1. 페이지 설정 (넓은 화면 모드)
 st.set_page_config(page_title="올인원논술", layout="wide")
 
-# 2. API 키 설정
+# 2. API 키 설정 (Secrets 활용)
 try:
     api_key = st.secrets["api_key"]
     genai.configure(api_key=api_key)
@@ -19,7 +19,7 @@ except:
 # ---------------------------------------------------------
 SHEET_URL = "여기에_시트_주소를_넣으세요"
 
-@st.cache_data # 데이터를 매번 새로 읽어오지 않고 속도를 높이기 위한 설정입니다
+@st.cache_data
 def load_data(url):
     try:
         # 구글 시트를 CSV 형태로 읽어오는 방식입니다
@@ -33,15 +33,15 @@ def load_data(url):
 # 데이터 불러오기 실행
 df = load_data(SHEET_URL)
 
-# 3. 메인 탭 생성
-tab1, tab2 = st.tabs(["📺 온택트 강의실", "✍️ AI 논술 첨삭"])
+# 3. 메인 탭 생성 (명칭 변경: 논술 강의실)
+tab1, tab2 = st.tabs(["📺 논술 강의실", "✍️ AI 논술 첨삭"])
 
-# --- [Tab 1: 온택트 강의실] ---
+# --- [Tab 1: 논술 강의실] ---
 with tab1:
-    st.title("📺 온택트 강의실")
+    st.title("📺 논술 강의실")
     
     if df is not None:
-        # 시트 데이터가 있을 경우
+        # 시트 데이터가 연결되었을 경우
         col1, col2 = st.columns([1, 3])
         
         with col1:
@@ -62,7 +62,7 @@ with tab1:
     else:
         # 아직 시트 주소가 연결되지 않았을 때의 안내 문구
         st.warning("아직 강의 데이터(구글 시트)가 연결되지 않았습니다. 시트 주소를 app.py에 입력해주세요.")
-        st.info("임시로 예시 강의를 보여드릴까요?")
+        st.info("임시로 예시 영상을 보여드립니다.")
         st.video("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
 
 # --- [Tab 2: AI 논술 첨삭] ---
@@ -80,7 +80,7 @@ with tab2:
                 try:
                     img = PIL.Image.open(uploaded_file)
                     
-                    # 작가님의 최신 첨삭 지침
+                    # 작가님의 최신 첨삭 지침 (창의성 및 제목 추천 포함)
                     instruction = """
                     너는 초중등 논술 전문가이자 아이들의 창의적인 아이디어를 확대해주는 논술 선생님이야. 
                     모두가 똑같은 정답이나 모범답안만을 요구하지 않고, 학생의 번뜩이는 아이디어와 창의성 및 어조를 최대한 살려주면서 
